@@ -56,6 +56,11 @@ fn main() -> Result<()> {
         moe_builder = moe_builder.arg("-DCANDLE_NO_WMMA");
     }
 
+    // cudaforge compiles this library as machine code for one architecture
+    // only. Embedding the PTX too lets the driver JIT the kernels on newer GPUs.
+    let ptx_gencode = format!("-gencode=arch=compute_{compute_cap},code=compute_{compute_cap}");
+    moe_builder = moe_builder.arg(&ptx_gencode);
+
     let mut is_target_msvc = false;
     if let Ok(target) = std::env::var("TARGET") {
         if target.contains("msvc") {
