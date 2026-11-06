@@ -7,13 +7,19 @@
 
 // FIXME: the minimum compute capabilities are just guesses since the table is not specific enough
 
+// NaN-propagating max and min of __half, under names of our own: CUDA 12.8
+// headers define __hmax_nan and __hmin_nan for every architecture, older ones
+// only from compute 8.0, so a fallback with the same names cannot build on both.
 #if __CUDA_ARCH__ < 800
-__device__ __forceinline__ __half __hmax_nan(__half a, __half b) {
+__device__ __forceinline__ __half candle_hmax_nan(__half a, __half b) {
     return __hisnan(a) ? a : (__hisnan(b) ? b : __hmax(a, b));
 }
-__device__ __forceinline__ __half __hmin_nan(__half a, __half b) {
+__device__ __forceinline__ __half candle_hmin_nan(__half a, __half b) {
     return __hisnan(a) ? a : (__hisnan(b) ? b : __hmin(a, b));
 }
+#else
+__device__ __forceinline__ __half candle_hmax_nan(__half a, __half b) { return __hmax_nan(a, b); }
+__device__ __forceinline__ __half candle_hmin_nan(__half a, __half b) { return __hmin_nan(a, b); }
 #endif
 
 #if __CUDA_ARCH__ < 600
