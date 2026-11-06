@@ -232,7 +232,13 @@ fn get_device_info(dev: &CudaDevice) -> DeviceInfo {
     }
     .unwrap_or(32);
     let info = DeviceInfo {
-        cc: major * 100 + minor * 10,
+        // The data layout must follow the compiled kernels, not the actual GPU:
+        // kernels for an older architecture also run on newer cards.
+        cc: (major * 100 + minor * 10).min(
+            option_env!("CUDA_COMPUTE_CAP")
+                .and_then(|c| c.trim_end_matches(|x: char| x.is_alphabetic()).parse::<i32>().ok())
+                .map_or(i32::MAX, |c| c * 10),
+        ),
         nsm,
         smpbo: smpbo as i64,
         warp_size,
