@@ -1,34 +1,38 @@
 # candle
 
-> **Branch `older-nvidia-gpus`: candle 0.11.0 with CUDA fixes for GPUs older than
-> compute 7.0.** Upstream 0.11.0 does not build its CUDA kernels for Pascal
-> (GTX 10xx, compute 6.x), and with CUDA 12.8 not for anything older than
-> Ampere. This branch is the `0.11.0` tag plus four small commits, 39 lines in
-> 8 files (`git log 0.11.0..older-nvidia-gpus`):
+> **Branch `older-nvidia-gpus`: candle 0.11.0 with CUDA fixes for older and
+> mixed GPUs.** Upstream 0.11.0 does not build its CUDA kernels for Pascal
+> (GTX 10xx, compute 6.x), with CUDA 12.8 not for anything older than Ampere,
+> and its fast quantized kernels return garbage on GPUs newer than the one they
+> were built for. This branch is the `0.11.0` tag plus about 30 lines in 6 files
+> (`git log 0.11.0..older-nvidia-gpus`, each commit explains its change):
 >
 > 1. `__hmax_nan` / `__hmin_nan` fallbacks renamed, so CUDA 12.8 headers no
 >    longer clash with them below compute 8.0.
 > 2. The WMMA MoE kernels are left out below compute 7.0, and the `__half`
 >    softmax/norm kernels (which need `atomicAdd` on `__half`) start at 7.0.
-> 3. The quantized fast path picks its layout from the compiled
->    `CUDA_COMPUTE_CAP` when that is lower than the GPU's, so a binary built
->    for an older card also runs on newer ones.
-> 4. `CANDLE_NO_FAST_QUANTIZED`, set at build time, makes quantized matmuls
->    take the generic path: built for compute 6.1, the fast kernels still
->    produced noise on a recent RTX card, for a reason not yet known.
+> 3. The static kernel library (MoE, `mmq_gguf`, `mmvq_gguf`) embeds PTX as
+>    well as machine code, so the driver can JIT it on newer GPUs. Without it
+>    those kernels fail to load there, silently, and the quantized fast path
+>    returns uninitialized memory.
 >
-> Builds at compute 7.0 and above with neither variable set behave as
-> before. To use it from a project on candle 0.11:
+> Two earlier commits worked around the symptom of 3 and are reverted.
+> Builds at compute 7.0 and above behave as before, except that the static
+> library also carries PTX. To use it from a project on candle 0.11, patch all
+> the candle crates you depend on, so each exists only once in the build:
 >
 > ```toml
 > [patch.crates-io]
 > candle-core = { git = "https://github.com/SimoneAvogadro/candle", branch = "older-nvidia-gpus" }
 > candle-kernels = { git = "https://github.com/SimoneAvogadro/candle", branch = "older-nvidia-gpus" }
+> candle-nn = { git = "https://github.com/SimoneAvogadro/candle", branch = "older-nvidia-gpus" }
+> # and candle-metal-kernels, candle-ug, ... if they are in your Cargo.lock
 > ```
 >
-> and build with `CUDA_COMPUTE_CAP=61 CANDLE_NO_FAST_QUANTIZED=1`. Tested with
-> CUDA 12.8 on Windows, built for compute 6.1 and run on an RTX 5070 Ti; not
-> yet on an actual Pascal card.
+> and build with `CUDA_COMPUTE_CAP=61` for one binary that runs on GTX 10xx and
+> every newer card. Tested with CUDA 12.8 on Windows, built for compute 6.1 and
+> run on an RTX 5070 Ti, where it is as fast as a native sm_120 build; not yet
+> on an actual Pascal card.
 
 [![discord server](https://dcbadge.limes.pink/api/server/hugging-face-879548962464493619)](https://discord.gg/hugging-face-879548962464493619)
 [![Latest version](https://img.shields.io/crates/v/candle-core.svg)](https://crates.io/crates/candle-core)
