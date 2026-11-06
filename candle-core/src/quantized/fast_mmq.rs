@@ -263,6 +263,10 @@ pub fn try_fwd(
     rhs_l: &crate::Layout,
 ) -> Result<Option<(CudaStorage, Shape)>> {
     let w_dtype = qstorage.dtype();
+    // Set CANDLE_NO_FAST_QUANTIZED when building to always take the slow path
+    if option_env!("CANDLE_NO_FAST_QUANTIZED").is_some() {
+        return Ok(None);
+    }
     if !supports(w_dtype) {
         return Ok(None);
     }
