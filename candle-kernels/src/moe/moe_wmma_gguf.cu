@@ -1,3 +1,5 @@
+// WMMA needs at least compute 7.0, and xtts-rs does not use these kernels
+#ifndef CANDLE_NO_WMMA
 /**
  * @brief CUDA kernel for Mixture-of-Experts (MoE) GEMM with GGUF quantized weights and Tensor Core.
  *
@@ -420,3 +422,5 @@ extern "C" void moe_gemm_gguf_prefill(
     cudaFreeAsync(expert_counts, stream);
     cudaFreeAsync(expert_offsets, stream);
 }
+
+#endif

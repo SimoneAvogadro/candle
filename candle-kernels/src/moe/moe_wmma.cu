@@ -1,3 +1,5 @@
+// WMMA needs at least compute 7.0, and xtts-rs does not use these kernels
+#ifndef CANDLE_NO_WMMA
 /**
  *  @brief  WMMA-based grouped MoE GEMM kernel.
  *
@@ -285,3 +287,4 @@ extern "C" void moe_gemm_wmma(
     }
 #endif
 }
+#endif

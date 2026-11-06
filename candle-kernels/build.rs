@@ -51,6 +51,10 @@ fn main() -> Result<()> {
     if compute_cap < 80 {
         moe_builder = moe_builder.arg("-DNO_BF16_KERNEL");
     }
+    // The WMMA fragments need at least compute 7.0
+    if compute_cap < 70 {
+        moe_builder = moe_builder.arg("-DCANDLE_NO_WMMA");
+    }
 
     let mut is_target_msvc = false;
     if let Ok(target) = std::env::var("TARGET") {
